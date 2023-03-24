@@ -1,0 +1,60 @@
+
+
+#########################################################
+# Storage
+#########################################################
+
+# There is no imperative way to add a volume to a pod. You must have a YAML file.
+
+# get volumes mounted by containers
+# check "volumes" and "volumemounts" sections in the pod and deployment manifests
+kubectl describe pod mypod
+
+
+# "emptyDir" runs at the pod level and it is shared between containers in the pod
+
+
+# using local storage on nodes (hostPath) is not advisable since the pod
+# since the pod can be restarted on any node, it may loose access to the local storage on the node.
+# you can even mount the root folder of the node !! (security risk)
+
+
+# instead of defining volume inside Pod YAML files, 
+# you can define different Storage Classess in your cluster based on speed etc.
+# You should define Storage Classes for databases, backups, log files etc.  
+# nfs, cifs, local, cloud based
+
+# Persistent Volumes (PVs) are  provisioned from a Storage Class.
+
+# dynamic provisioning uses StorageClass, where a StorageProvisioner is called. 
+# a Persistent Volume (PV) is created dynamically, on demand by the StorageProvisioner.
+# The PV is created automatically in response to  the creation of a PVC, rather than being pre-created by an administrator 
+# (as it is in static provisioning).
+kubectl get storageclass
+
+
+
+# Persistent Volumes (PVs) live outside of the Kubernetes namespaces (they service any namespace)
+# supported access modes are Read Write Once, Read Write Many, Read Only Many
+# ReadWriteMany means that multiple pods can access the PV.
+
+# static provisioning uses Persistent Volumes
+kubectl get persistentvolumes
+kubectl get pv --sort-by=.spec.capacity.storage
+
+
+
+# PVC is used in pod definition files
+# Every PVC is bound to a single PV.
+# PVCs are namespace specific. 
+# Kubernetes determines the best PV to use with a given PVC. 
+# If multiple PVs meet the requires, you can use a 'label'
+# When a PVC binds to a PV, no other PVC can use the remaining capacity of the PV !!
+# If the access mode for the PV and the PVC do not match, the PVC stays in "Pending" state.
+# If a PVC is not used by a pod, it will remain in "Pending" state.
+kubectl get pvc
+
+
+# the cluster admin creates the PV and the developer creates the PVC
+# When you delete the PVC, by default, the PV remains. But it cannot be used by other PVCs. 
+

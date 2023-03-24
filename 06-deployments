@@ -1,0 +1,19 @@
+
+##########################################################
+# create a deployment for a simple "hello world" app
+##########################################################
+kubectl create deployment hello-world --image=gcr.io/google-samples/hello-app:1.0
+kubectl describe deployment hello-world
+kubectl get pods -o wide
+curl <ip of the hello-world pod>:8080
+kubectl get replicaset 
+kubectl scale deployment hello-world --replicas=10
+# this will connect to the first pod
+kubectl exec -it deployment/hello-world  -- sh
+hostname
+wget -qO- localhost:8080
+exit
+
+# the following returns the name of one of the pods from a deployment
+kubectl get pods | grep -i hello-world | awk '{print $1}' | head -n 1
+

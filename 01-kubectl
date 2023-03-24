@@ -1,0 +1,15 @@
+###################################
+# about kubectl and online help
+###################################
+
+kubectl version
+
+# getting online help
+kubectl get pods -h 
+kubectl explain pod --recursive | less 
+
+# run kubectl with higher verbosity
+kubectl get pods -v 6 
+
+# use the following link especially for JSONPATH
+# https://kubernetes.io/docs/reference/kubectl/cheatsheet/ 

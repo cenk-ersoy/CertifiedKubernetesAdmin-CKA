@@ -1,0 +1,30 @@
+
+############################################################
+# container access
+############################################################
+kubectl exec -it mypod -- /bin/bash
+kubectl exec -it mypod -- sh -c 'cat /etc/resolv.conf'
+
+# some containers may not have 'bash' shell
+# also you may have to install additional tools
+kubectl exec -it mypod -- sh
+apt update
+apt install net-tools
+ping -c 3 <IP of another pod>
+exit
+
+# if you have a multi-container pod, you must specify the container 
+kubectl exec -it mymulticontainerpod -c mycontainer1 -- sh
+hostname
+exit
+
+# some containers may not have "ping" installed
+kubectl exec pod1 -- ping -c 3 <IP of pod2>
+
+
+# check environment variable in a container
+kubectl exec  mypod -- sh -c 'printenv | grep "^ABCD"'
+
+
+# you can override the "command" and "arguments" of a container
+kubectl exec mypod -- sh -c 'tail -f /dev/null'

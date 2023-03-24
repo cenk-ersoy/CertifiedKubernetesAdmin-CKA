@@ -1,0 +1,78 @@
+
+
+###############################################################
+# Scheduling
+# (Node selection, node affinity, taints and tolerations)
+###############################################################
+
+# if "kube-scheduler" cannot find a node with enough resources, 
+# then the pod will remain in "Pending" state.
+
+# you can manually define the "nodeName" in pod manifest to place the pod on a certain node
+
+# you can also move a running pod to another node by using "Binding" (??)
+
+# Affinity,  Anti-affinity and Node Selectors are used to attract Pods to a Node
+
+# Taints and Tolerations are used to repel Pods from Nodes. 
+
+
+
+# When a Taint is applied to a Node, no Pods can be scheduled to that Node. 
+# master node is usually created with taint so that no pods are scheduled.
+
+
+kubectl taint nodes node1 app=blue:NoSchedule
+
+
+# here is how you can untaint the master node. Notice "-" at the end
+kubectl taint node master node-role.kubernetes.io/master-
+
+
+# But a Pod can be created with Toleration to a Taint.
+# A pod with toleation can be scheduled on ANY node. It does not have to land on the node with Taint.
+
+
+
+# NoSchedule – do not place the pods here
+# PreferNoSchedule – try your best not to place pods here
+# NoExecute – evict pods if they already existed when taint was applied to the node. Pods with toleration remain on the node. 
+
+
+
+# when defining "toleration" in node YAML file, you MUST use double quotes.
+
+
+# "Node selector" is used to schedule certain pods to be created on a particular node
+# for example you may have pods that require GPUs
+
+# to use "node selector", you must label the node
+# the "kube-scheduler" will match it to the label of the pod so that you can
+# assign all pods belonging to an application to a certain node. 
+kubectl label nodes node01  “size=Large”
+# then, in the pod definition file, you can add the same label in the “nodeSelector” section.
+
+# you can also define "nodeSelector" based on disk type of the node.
+
+
+
+# Node Affinity allows us to define complex logic for pod replacement on specific nodes. 
+# There are many operators such as “In”, “NotIn”, “Exists” etc.
+# “DuringScheduling” refers to the initial creation of the pod.
+# The “DuringExecution” refers to situation where the property of the pod is modified when it is operational. 
+# "requiredDuringSchedulingIgnoredDuringExecution" means that the Node Affinity rules can be ignored when there is no match.
+
+
+# Anti-affinity ensures that Pods are not co-located on the same resource such as a Node or a fault domain.
+
+# you can define your custom scheduler by copying the "kube-scheduler" pod definition and modifying it.
+# then you must specify "schedulerName" in the pod manifest
+kubectl -n kube-system get pod kube-scheduler-xxxx -o yaml > mysched.yaml
+
+kubectl get events
+kubectl logs my-custom-scheduler --name-space = kube-system
+
+
+
+
+

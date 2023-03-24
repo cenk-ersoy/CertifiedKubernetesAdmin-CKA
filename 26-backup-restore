@@ -1,0 +1,37 @@
+
+
+########################################################################
+# Backup and Restore
+########################################################################
+
+kubectl get all --all-namespaces -o yaml > all-deploy-services.yaml
+
+# you can get info on ETCD as follows
+kubectl -n kube-system logs etcd-controlplane 
+
+# get the address of the ETCD cluster
+kubectl -n kube-system describe pod etcd-controlplane | grep '\--listen-client-urls'
+
+# get the location of the certificate files
+kubectl -n kube-system describe pod etcd-controlplane | grep '\--cert-file'
+kubectl -n kube-system describe pod etcd-controlplane | grep '\--trusted-ca-file'
+
+
+export ETCDCTL_API=3
+etcdctl –version
+
+etcdctl snapshot save snapshot.db
+etcdctl snapshot status snapshot.db
+
+# first restore the snapshot
+service kube-apiserver stop
+etcdctl snapshot restore snapshot.db --data-dir /var/lib/etcd-from-backup
+
+# then configure ETCD to use it
+vi /etc/kubernetes/manifests/etcd.yaml 
+
+systemctl daemon-reload
+service etcd restart
+service kube-apiserver start
+
+

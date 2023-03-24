@@ -1,3 +1,80 @@
+##############################################################
+# deployments
+#############################################################
+
+# labels of the Deployment and Pod should match
+
+
+# deleting the deployment does NOT delete Services. 
+
+kubectl create deployment hello-world --image=gcr.io/google-samples/hello-app:1.0 --replicas=2
+kubectl wait --for=condition=Ready pod -l app=hello-world
+kubectl get pods -l app=hello-world
+
+
+# check READY vs UP-TO-DATE columns to see if all replicas are running
+kubectl get deployments -o wide
+
+kubectl scale deployment hello-world --replicas=10
+
+kubectl exec -it deployment/hello-world -- hostname
+
+kubectl get deployment hello-world -o yaml > hello-world-deployment.yaml
+
+
+# if you overwrite the label of a pod, it becomes "unmanaged"
+# deployment controller will create a new pod but the old one will NOT be deleted
+# this can be a debugging technique
+kubectl get pods -l app=hello-world
+kubectl label pods hello-world-xxxx app=nothello --overwrite
+kubectl get pods 
+
+
+# for rollout and rollback, you must record the Deployment
+kubectl apply -f mydeploy.yaml --record
+# wait until all pods are running
+kubectl rollout status deployment mydeploy
+kubectl rollout pause deployment hello-deploy
+kubectl rollout resume deployment hello-deploy
+
+kubectl rollout history deployment mydeploy
+kubectl rollout undo deployment mydeploy --to-revision=1 
+# wait until all pods are running
+
+
+# you can change a deployment on the fly
+kubectl edit deployment my-app
+
+
+# you can also rollout daemonsets
+kubectl rollout daemonset mydaemonset 
+
+
+# there are multiple ways to change te behaviour of a container, pod or deployment
+
+# you can change the container image version for the pods of a deployment
+# new pods will be created, the change will be recorded
+kubectl set image deployment/mydeploy nginx=nginx:1.9.1  --record 
+
+
+# you can also  modify existing "environment" variables for Deployments
+# it will re-create the pod 
+kubectl set env deployment mydeploy ENV=prod
+
+# check environment variable in a container
+kubectl exec  mypod -- sh -c 'printenv | grep "^ABCD"'
+
+
+# you can override the "command" and "arguments" of a container
+kubectl exec mypod -- sh -c 'tail -f /dev/null'
+
+
+# you can modify a running deployment by patching it with YAML file
+kubectl patch deployment mydeploy --patch-file file1.yaml
+
+
+
+
 
 ##########################################################
 # create a deployment for a simple "hello world" app

@@ -1,0 +1,16 @@
+
+############################################################
+# JSON PATH examples
+############################################################
+
+kubectl get pods -o custom-columns=NAME:metadata.name,LABELS:metadata.labels 
+
+kubectl get deployment -o custom-columns=DEPLOYMENT:.metadata.name,CONTAINER_IMAGE:.spec.template.spec.containers[].image,READY_REPLICAS:.status.readyReplicas,NAMESPACE:.metadata.namespace \
+ --sort-by=.metadata.name
+
+# check the examples in the cheatsheet
+
+
+
+
+

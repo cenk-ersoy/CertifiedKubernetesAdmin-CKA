@@ -23,3 +23,14 @@ kubectl apply -f mypod.yaml
 # The “kubectl apply” syntax will only modify objects that are different from the current objects in the cluster. 
 # If the objects you are creating already exist in the cluster, it will simply exit successfully without making any changes. 
 
+
+
+###########################################
+# deploy simple voting app
+###########################################
+kubectl apply -f https://raw.githubusercontent.com/Azure/aks-hci/main/eval/yaml/azure-vote.yaml
+kubectl get pods
+kubectl get service azure-vote-front
+# use <external-ip>:port to access the app via  browser
+
+

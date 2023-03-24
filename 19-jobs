@@ -1,0 +1,22 @@
+
+#############################################################
+# Jobs
+#############################################################
+
+kubectl create job hello-job --image=busybox --dry-run=client -o yaml -- echo "Hello I'm running job" > hello-job.yaml
+
+# as the job runs, multiple pods may be created
+kubectl get jobs
+kubectl get pods
+kubectl log hello-job-xxxx
+
+
+# you can define "completions" and "parallelism"
+
+# you can also create "cronjobs"
+# the following schedule runs every 5 mins
+# */5  * * * * command  # every 5 mins
+
+kubectl get cronjobs
+
+

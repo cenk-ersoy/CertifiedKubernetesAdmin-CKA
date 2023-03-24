@@ -1,0 +1,322 @@
+
+
+
+
+###################################################################
+#
+#   CLUSTER MANAGEMENT SECTION
+#
+####################################################################
+
+
+# always check if the nodes are online
+kubectl get nodes -o wide
+
+# get the Container Runtime from the master node (check the node, not the kube-apiserver pod)
+kubectl describe node master | grep -i runtime
+
+
+##########################################################
+# cluster components (if deployed using "kubeadm")
+##########################################################
+
+kubectl -n kube-system get pods
+
+
+# the following 4 are installed as pods in 'kube-system' namespace
+# they all run on the master node
+ps -aux | grep -i kube-apiserver
+ps -aux | grep -i kube-scheduler
+ps -aux | grep -i kube-control-manager
+ps -aux | grep -i etcd
+
+# the following 2 components are always installed as services (not pods) on the nodes
+ps -aux | grep -i kubelet
+ps -aux | grep -i kube-proxy
+
+
+
+# --- control plane pods in kube-system namespace -----
+
+# assuming the master node is called "xxxx"
+# you can get pod description of apiserver and its logs
+kubectl -n kube-system get pod kube-apiserver-xxx -o yaml
+kubectl -n kube-system describe pod kube-apiserver-xxxx
+kubectl -n kube-system logs kube-apiserver-xxxx
+
+# similarly you can get the description, logs and yaml output of any of the kube-system pods
+kubectl -n kube-system get pods | grep -i kube-scheduler
+kubectl -n kube-system get pod kube-scheduler-node01 -o yaml
+kubectl -n kube-system describe pod kube-scheduler-node01
+kubectl -n kube-system logs kube-scheduler-node01
+
+
+# static pods definition files are located at /etc/kubernetes/manifests/
+# these are the components that run on the master node
+cat /etc/kubernetes/manifests/kube-apiserver.yaml
+cat /etc/kubernetes/manifests/kube-scheduler.yaml
+cat /etc/kubernetes/manifests/kube-controller-manager.yaml
+cat /etc/kubernetes/manifests/etcd.yaml
+
+# exposing "kube-apiserver" (not secure)
+kubectl proxy --port=8080 & 
+curl http://localhost:8080/version
+curl http://localhost:8080/api 
+# you must kill the "kubectl proxy" process
+ps -ef | grep -i "kubectl proxy"
+kill -9 <pid>
+
+
+# --- kubelet and kube-proxy --------
+
+# the following 2 components are always installed as services (not pods)
+ps -aux | grep -i kubelet
+ps -aux | grep -i kube-proxy
+
+
+# ---- kubelet -----
+
+# configuration file for "kubelet" is here
+cat /var/lib/kubelet/config.yaml
+
+
+# list all services
+systemctl list-units --type=service
+
+
+# check the health of a service
+systemctl status kubelet.service
+systemctl stop kubelet.service
+systemctl start kubelet.service
+
+# enable a service for auto start
+systemctl enable kubelet.service
+
+
+# check the journals of the system processes
+# even if a service is running, check its logs
+journalctl -u kubelet.service
+
+# kubelet configuration file is elsewhere
+ps -ef | grep kubelet | grep -i config
+# also check this folder
+cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+
+
+# ---- kube-proxy ------
+
+# configuration file for kube-proxy is here
+cat /var/lib/kube-proxy/config.conf 
+
+# actually the "kube-proxy" and overlay networks are created as daemonsets (one pod on each node)
+kubectl -n kube-system get daemonset
+kubectl -n kube-system describe daemonset kube-proxy
+kubectl -n kube-system edit daemonset kube-proxy
+
+# only "kube-proxy" keeps its kubeconfig file as a ConfigMap volume
+kubectl -n kube-system get configmap kube-proxy -o yaml
+kubectl -n kube-system describe configmap kube-proxy
+
+
+
+
+
+##########################################################
+# cluster components (if deployed as services)
+##########################################################
+
+# master node
+ps -aux | grep -i kube-apiserver
+ps -aux | grep -i kube-scheduler
+ps -aux | grep -i kube-control-manager
+ps -aux | grep -i etcd
+
+# worker node
+ps -aux | grep -i kubelet
+ps -aux | grep -i kube-proxy
+
+
+# list all services
+systemctl list-units --type=service
+
+
+# ---- control plane components ------
+
+# the configuration files for the master node components are at /etc/systemd/system/
+cat /etc/systemd/system/kube-apiserver.service
+cat /etc/systemd/system/kube-scheduler.service
+cat /etc/systemd/system/kube-controller-manager.service
+
+
+
+# --- kubelet ----------
+### worker node troubleshooting
+service kubelet status
+
+systemctl status kubelet.service -l
+
+# even if a service is running, check its logs
+journalctl -u kubelet
+
+systemctl enable kubelet.service
+systemctl daemon-reload
+systemctl restart kubelet.service
+
+cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+cat /var/lib/kubelet/config.yaml 
+
+
+# ------ kube-proxy -------------
+
+systemctl status kube-proxy.service
+systemctl enable kube-proxy.service
+systemctl restart kube-proxy.service
+
+journalctl -u kube-proxy
+
+kubectl -n kube-system describe daemonset kube-proxy 
+
+
+
+
+
+
+#######################################################################
+# other k8s objects (kube-dns, coredns, metrics server etc.)
+#######################################################################
+
+kubectl -n kube-system get deployments
+kubectl -n kube-system get services
+kubectl -n kube-system get endpoints
+kubectl -n kube-system get daemonsets 
+
+kubectl -n kube-system get pods  -l 'k8s-app in (kube-dns, calico-node)'
+
+
+
+# "kube-proxy" is a daemonset in kube-system namespace
+# some overlay networks (such as calico) are also daemonsets
+kubectl -n kube-system get daemonsets
+
+
+# calico details can also be found in the node description
+kubectl describe node node01 | grep -i calico
+
+
+
+
+##################################################################################
+# static pods
+##################################################################################
+
+# static pods are managed by kubelet (not apiserver)
+# kubelet creates the static pods (including "kube-apiserver"). You cannot control it.
+
+# static pods definition files are usually at /etc/kubernetes/manifests/
+cat /etc/kubernetes/manifests/kube-apiserver.yaml
+cat /etc/kubernetes/manifests/kube-scheduler.yaml
+cat /etc/kubernetes/manifests/kube-controller-manager.yaml
+cat /etc/kubernetes/manifests/etcd.yaml
+
+
+
+# finding the actual folder for static pods
+# the manifest for kubelet shows the static Pod path
+ps -f | grep kubelet | grep -i config
+cat /var/lib/kubelet/config.yaml | grep -i staticPodPath
+
+
+
+# to create a custom static pod
+# you can create a custom pod definition file and copy is a root into /etc/kubernetes/manifests/
+
+
+
+
+
+##############################################################
+# using ETCD
+##############################################################
+
+
+
+cat /etc/kubernetes/manifests/etcd.yaml
+
+# since "kube-apiserver" updates ETCD, it knows about ETCD's location
+kubectl -n kube-system get node master -o yaml | grep -i etcd
+cat /etc/systemd/system/kube-apiserver.service | grep -i etcd
+
+
+# the "etcdCTL" is the tool to manage ETCD info 
+sudo apt install etcd-client
+
+
+# you can get the credentials from the etcd.yaml file
+cat /etc/kubermnetes/manifests/etcd.yaml
+# run the "etcdctl" commands as root especially if you need to pass credentials as shown below
+# check the health of endpoint
+sudo su - 
+export ETCDCTL_API=3
+etcdctl endpoint health --endpoints=127.0.0.1:2379  \
+--cacert=/etc/kubernetes/pki/etcd/ca.crt \
+--cert=/etc/kubernetes/pki/etcd/server.crt \
+--key=/etc/kubernetes/pki/etcd/server.key 
+
+
+
+# you can interact with the etcd pod itself as well without needing to install "etcdctl" tool on the master node
+export ETCDCTL_API=3
+etcdctl get / --prefix --keys-only 
+kubectl -n kube-system exec etcd-master -- sh -c "ETCDCTL_API=3 etcdctl get / --prefix --keys-only \ 
+--limit=10 --cacert /etc/kubernetes/pki/etcd/ca.crt \
+--cert /etc/kubernetes/pki/etcd/server.crt  --key /etc/kubernetes/pki/etcd/server.key" 
+
+
+
+
+export ETCDCTL_API=3
+etcdctl –version
+
+etcdctl snapshot save snapshot.db
+etcdctl snapshot status snapshot.db
+
+
+# stop "kube-apiserver" before restoring the snapshot
+service kube-apiserver stop
+etcdctl snapshot restore snapshot.db --data-dir /var/lib/etcd-from-backup
+
+# then re-configure ETCD to use it
+vi /etc/kubernetes/manifests/etcd.yaml 
+
+# restart etcd and kube-apiserver
+systemctl daemon-reload
+service etcd restart
+service kube-apiserver start
+
+# get help on etcdctl utility
+export ETCDCTL_API=3 
+etcdctl snapshot restore -h
+
+
+# if you need the certs for ETCD, do the following since kube-apiserver talks to ETCD
+kubectl -n kube-system get pod <api-server-pod-name>  -o yaml
+
+
+
+
+#########################################################################
+# HTTP Proxy for "kube-apiserver"
+#########################################################################
+
+# it establishes secure communication between local workstation on kube-apiserver
+
+kubectl proxy --port=8080 &
+curl http://localhost:8080/api
+curl http://localhost:8080/version
+curl http://localhost:8080/api/v1/namespaces/default/pods
+
+# you must kill the "kubectl proxy" process to end the session
+ps -ef | grep -i "kubectl proxy"
+kill -9 <pid>
+

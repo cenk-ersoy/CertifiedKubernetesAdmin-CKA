@@ -1,0 +1,55 @@
+
+#############################################
+# Name resolution
+#############################################
+
+# CoreDNS handles name resolution in Kubernetes
+# coredns is created via a Deployment as a dual-pod in "kube-system" namespace
+
+kubectl -n kube-system get deployment coredns
+kubectl -n kube-system get pods | grep -i dns
+kubectl -n kube-system describe pod coredns-xxxxx
+kubectl -n kube-system logs coredns-xxxxx
+
+# service called "kube-dns" is also created. 
+# the /etc/resolv.conf file on all pods point to the IP of that service
+kubectl -n kube-system get service kube-dns -o wide
+kubectl -n kube-system describe service kube-dns
+# the service uses ConfigMap
+kubectl -n kube-system get configmaps coredns -o yaml | grep -i forward
+
+
+# coreDNS uses the following config file
+cat /etc/coredns/Corefile 
+
+# The Corefile is passed into the CoreDNS pods as a “ConfigMap” object 
+# in the 'kube-system' namespace
+# you can view the contents of the Corefile in ConfigMap
+# it shows if there is DNS Forwarding
+kubectl -n kube-system get configmaps coredns -o yaml | more
+kubectl -n kube-system describe configmap coredns
+
+
+
+# since Kublet creates the pods, it needs to know about DNS configuration
+# the configuration file for "kubelet" also shows the DNS server
+# check for "clusterDNS" section
+cat /var/lib/kubelet/config.yaml | grep "clusterDNS" -A 2
+
+
+
+# you can do name resolution from one pod to another
+# the pod name syntax uses dashes instead of dots in IP address
+# example syntax  10-2-1-40.default.pod.cluster.local
+kubectl run alpine-pod --image=alpine -it -- sh
+nslookup 10-2-1-40.default.pod.cluster.local
+cat /etc/resolv.conf 
+exit
+
+# similarly you can check name resolution for services
+# you can install "bind-tool" using "apk update && apk add bind-tools" on an alpine pod
+# then you can use "dig myservice all" to get all DNS records
+
+# here is a useful container image with all networking tools
+kubectl run nettools --image=raesene/alpine-nettools --restart=Never 
+

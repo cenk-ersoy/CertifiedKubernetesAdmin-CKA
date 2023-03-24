@@ -1,0 +1,27 @@
+
+##############################################################
+# deamonsets
+##############################################################
+
+# daemonsets are similar to deployments
+# but only one copy of the pod runs on each node
+# useful for monitoring agents, log collection agents etc.
+
+# you can take the YAML file for a deployment 
+# and change its "kind" field to "DaemonSet"
+kubectl -f apply mydaemonset.yaml
+
+
+kubectl get daemonsets
+
+kubectl edit daemonset mydaemonset
+
+kubectl rollout daemonset mydaemonset 
+
+
+# "kube-proxy" and overlay networks are created as daemonsets (one per node)
+# in 'kube-system' namespace
+kubectl -n kube-system get daemonsets
+
+
+

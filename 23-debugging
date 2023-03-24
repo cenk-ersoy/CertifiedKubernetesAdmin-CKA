@@ -1,0 +1,42 @@
+
+#######################################################
+# Debugging (describe, logs, events) 
+#######################################################
+
+# always start with checking if the control plane components are running
+kubectl -n kube-system get pods 
+
+
+# if not, investigate the pod and its logs
+kubectl -n kube-system describe pod api-server-master
+kubectl -n kube-system logs api-server-master
+
+# troubleshooting services
+sudo systemctl status kubelet.service
+sudo journalctl -u kubelet.service
+
+# Kubernetes events
+kubectl get events --sort-by='{.lastTimestamp}' --watch
+
+
+# here is a useful container image with all networking tools
+kubectl run nettools --image=raesene/alpine-nettools --restart=Never 
+
+
+# for any Kubernetes object, you can do the following
+kubectl get pod mypod -o yaml 
+kubectl describe pod mypod # check Events section
+
+kubectl logs mypod --watch
+fg
+cntrl-c
+
+
+# get logs for a set of pods
+kubectl logs --selector app=hello-world
+
+# all logs are at /var/log/
+ls /var/log/containers
+
+# get particular events
+kubectl get events --field-selector type=Warning

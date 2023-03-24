@@ -1,0 +1,12 @@
+
+############################################################
+# replicasets
+############################################################
+
+# check desired state
+kubectl get replicasets
+
+# To scale an application, it is better to scale the Deployment.
+kubectl scale replicaset myappreplicaset --replicas=10 
+kubectl scale --replicas=10  -f  myrepset.yaml
+

@@ -14,3 +14,31 @@ kubectl config view --kubeconfig=jane.conf
 
 kubectl cluster-info
 kubectl cluster-info dump
+
+
+
+#########################################
+# investigate the basic cluster setup
+########################################
+
+# get the IP address of the API server
+kubectl cluster-info
+kubectl cluster-info dump
+
+# get API resources and versions
+kubectl api-resources
+kubectl api-versions
+
+
+# get node count
+kubectl get nodes -o wide
+
+# check system components
+kubectl -n kube-system get pods 
+
+
+kubectl get namespaces
+
+kubectl get pods -o wide
+kubectl get deployments 
+kubectl get services

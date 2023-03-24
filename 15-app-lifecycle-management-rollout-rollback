@@ -1,0 +1,31 @@
+
+
+##################################################################
+# Application Lifecycle Management
+# Rollouts and Rollbacks
+###################################################################
+
+kubectl create deployment my-app --image=nginx --replicas=3
+
+kubectl rollout status deployment/my-app
+
+kubectl rollout history deployment/my-app
+
+kubectl set image deployment/my-app  nginx=nginx:1.16 --record=true
+
+kubectl rollout history deployment/my-app
+
+kubectl rollout undo deployment/my-app
+
+# 'StrategyType' field in the deployment YAML file can be "RollingUpdate" (default) or "Create"
+
+# "RollingUpdate" restarts one pod at a time
+# "create" will cause application downtime
+
+# a new ReplicaSet is created during Rolling Upgrade
+kubectl get replicasets
+
+# you can change the container version in running pod
+kubectl set image deployment/my-app nginx=nginx:1.9.1
+
+

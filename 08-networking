@@ -1,0 +1,107 @@
+
+##############################################
+# networking
+##############################################
+
+
+# port numbers of control plane components
+# ------------------------------------------
+# api-server: 6443
+# etcd: 2379
+# kubelet: 10250
+# kube-scheduler: 10251
+# kube-controller-manager: 10252
+# service ports: 30000 - 32767
+
+
+# commands to diagnose container networks
+# ----------------------------------------
+ifconfig
+ip link
+ip addr
+ip route
+route
+netstat -plnt
+arp
+cat /proc/sys/net/ipv4/ip_forward
+
+
+# the following image has all the networking tools (ping, dig, brctl)
+kubectl run nettools-pod --image=raesene/alpine-nettools --restart=Never
+
+
+# pod has its own internal IP address (not the IP of the node)
+# pods within node and across nodes communicate without NAT
+kubectl exec -it pod1 -- sh 
+ping -c <IP of pod2>
+exit
+
+
+# communication of pods across nodes requires overlay network (calico etc.)
+
+# you can check the networking configuration of a pod at container level
+# in the following commands, we assume a single container pod
+kubectl exec -it mypod -- ifconfig
+kubectl exec -it mypod -- route
+
+
+# cni configuration can be found here
+sudo ls /etc/cni/net.d/
+
+# also check the pod names in 'kube-system' namespace for overlay network pods (such as calico, flannel, weavenet)
+kubectl -n kube-system get pods
+
+# you can also use the "kubectl describe node" output for the master node to find out which CNI implementation is used
+kubectl describe node master
+
+
+# for CNI plugins, check the configuration file for "kubelet"
+ps -aux | grep -i kubelet 
+cat /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+
+
+# two CNI plugins deal with IP address assignment
+# "host-local" and "dhcp"
+cat /etc/cni/net.d/net-script.conf
+
+
+
+# "kube-proxy" default mode is "iptables".
+# check "kube-proxy" logs for its mode.
+kubectl -n kube-system logs kube-proxy-xxx | grep -i "proxy mode"
+
+# "kube-proxy" also determines the IP range for services.
+ps -aux | grep -i kube-proxy
+
+# the service IP range is also listed in the settings of "kube-apiserver"
+cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i "service-cluster-ip-range"
+
+
+
+
+# here is how you can "curl" to a pod in a different namespace
+curl http://mypod.namespaceX.svc.cluster.local
+
+
+# see the section on name resolution
+
+
+
+
+# port forwarding is a terminal session from laptop to pod, with tunneling
+kubectl port-forward mypod 8080:80
+# quit using control-c
+# list the process IDs
+lsof -i :8080
+sudo kill -9 <ipd>
+
+
+
+
+# you can define network policies that act like filter to pods
+# you must create pod YAML files with ingress and egress in the "policyTypes" section
+
+# flannel does NOT support network policies.
+
+kubectl get networkpolicies

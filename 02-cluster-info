@@ -1,0 +1,16 @@
+########################################
+# investigate cluster info & context
+########################################
+kubectl config get-contexts
+kubectl config current-context
+kubectl config use <other_context>
+
+# this command reads the $HOME/.kube/config file
+kubectl config view
+
+# you can view a specific kubeconfig file
+kubectl config view --kubeconfig=jane.conf
+
+
+kubectl cluster-info
+kubectl cluster-info dump

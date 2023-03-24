@@ -1,0 +1,15 @@
+####################################
+# kubernetes architecture
+####################################
+
+# the master node runs 
+#     - api server
+#     - controller manager
+#     - scheduler
+#     - etcd
+
+
+# the worker node runs
+#     - kubelet
+#     - kube-proxy
+#     - container runtime

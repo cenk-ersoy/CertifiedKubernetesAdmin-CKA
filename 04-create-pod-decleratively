@@ -1,0 +1,25 @@
+
+#########################################
+# create a simple pod decleratively
+#########################################
+kubectl run myredispod --image=redis --dry-run=client -o yaml > myredis.yaml
+
+# if you need to create the pod on a specific node, you can define it
+# in 'nodeName' field of the pod definition file
+vi myredis.yaml
+kubectl create -f myredis.yaml
+
+
+
+#######################################################
+# create a YAML file from a running object & modify it
+#######################################################
+kubectl get pod  mypod -o yaml > mypod.yaml
+vi mypod.yaml
+kubectl delete pod mypod
+kubectl apply -f mypod.yaml
+
+
+# The “kubectl apply” syntax will only modify objects that are different from the current objects in the cluster. 
+# If the objects you are creating already exist in the cluster, it will simply exit successfully without making any changes. 
+

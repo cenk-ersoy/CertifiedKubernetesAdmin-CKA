@@ -1,0 +1,22 @@
+##################################################################
+# pod states : Pending, Running, Completed, CrashLoopBackOff
+# ################################################################
+
+# containers run and eventually exit
+# if you have 'restartPolicy=Always' (default) and the container exits, pod goes into CrashLoopBackOff
+
+# but some containers like nginx and redis  never exit. They stay in "Running" state. 
+
+# to prevent a container from exiting, add the following to "container" section
+# in the pod definition file
+# command: ["sh", "-c", "tail -f /dev/null"]
+
+# you can also issue "/bin/sleep infinity" command when creating the pod
+kubectl run busybox-pod --image=busybox -- /bin/sleep infinity
+
+# to run a container once, set 'restartPolicy=Never'
+kubectl run nginx-pod --image=nginx restartPolicy=Never
+
+
+# check the output of "kubectl describe", for the details of pod status, errors etc.
+kubectl describe pod mypod

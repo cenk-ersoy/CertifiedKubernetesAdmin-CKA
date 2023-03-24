@@ -1,0 +1,93 @@
+
+
+##############################################
+# services and endpoints
+##############################################
+
+# endpoints are created per pod that the service maps to
+kubectl get services
+kubectl get endpoints
+
+kubectl create deployment hello-world --image=gcr.io/google-samples/hello-app:1.0 --replicas=3
+
+# the 'selector' field of the service should match the pod 'label'
+kubectl get pod hello-world-xxx  --show-labels
+
+# you can overwrite the label of a pod to remove it from its service
+kubectl label mypod app=xyz --overwrite
+
+
+# any pod can access any service in the cluster
+# assuming "curl" is installed on the container
+kubectl get services
+kubectl get endpoints
+kubectl exec mypod -- curl http:<servicename>:<port>
+kubectl exec mypod -- curl http:<endpointIP>:<port>
+
+
+# let us say you have an existing service and you are deploying a new
+# version of your application (a new rollout of a deployment)
+# once ready, you can switch the traffic to the new version of your application by patching
+# the service to send traffic to all pods with label version=v2.0.0
+kubectl patch service my-app -p '{"spec":{"selector":{"version":"v2.0.0"}}}'
+
+
+# using ClusterIP
+# for internal communications only!
+kubectl expose deployment hello-world --name hello-world-service --port=80 --target-port=8080
+kubectl get services
+# 'selector' field of the service should match the app 'label'
+kubectl describe service hello-world-service
+kubectl get endpoints
+curl <endpointIP>:port
+
+# implicit creation of service
+# but it is not associated with any pod or deployment
+# the endpoint will have no IP
+kubectl create service clusterip  myservice <target_port>:<port>
+kubectl get endpoints
+
+
+# using NodePort
+# same port on all node IPs
+# usually it is created as node level endpoints to loadbalancer
+# no load balancing, and exposing the cluster nodes is a security risk
+kubectl delete service hello-world-service
+kubectl expose deployment hello-world --name hello-world-service --type=NodePort --port=80 --target-port=8080 
+kubectl get service hello-world-service -o wide
+kubectl describe service hello-world-service
+kubectl get endpoints
+curl http://<nodeIP>:port
+
+
+
+# using LoadBalancer
+# usually a cloud provider is used
+kubectl delete service hello-world-service
+kubectl expose deployment hello-world --name hello-world-service --type=LoadBalancer --port=80 --target-port=8080 
+# if there is no cloud provider, the status will be "Pending"
+kubectl get service hello-world-service -o wide
+kubectl describe service hello-world-service
+kubectl get endpoints
+curl <endpointIP>:port
+
+
+# ExternalName is a special service that uses DNS names
+# to access external URLs. It has no label selectors. 
+
+# headless service is a special type of ClusterIP service.
+# it has no label selectors. It lists IP addresses. Useful for stateful pods.
+
+
+# Ingress (HTTP Loadbalancer) is not a service type. It is an entry point to the cluster.
+# it routes requests to different backend services. It operates at network layer 7.
+# the Ingress resource must be in the same namespace as the LoadBalancers
+# you must have a Ingress Controller, then you create Ingress Resource
+# the "nginx ingress controller" runs as a NodePort service
+kubectl create ingress my-ingress-service --rule="wear.my-online-store.com/wear*=wear-service:80"
+
+kubectl get ingress 
+kubectl describe ingress my-ingress-service
+
+kubectl get services
+

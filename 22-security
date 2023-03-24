@@ -1,0 +1,268 @@
+
+
+#####################################################################
+# Security 
+# (authentication, authorization, service accounts etc.)
+#####################################################################
+
+# authentication options are passwords, tokens, certificates, service accounts and external services (LDAP)
+
+
+
+# for manual authentication, you could add the usernames and passwords into a text file.
+# then you can modify the configuration file for "kube-apiserver" pod and add "--basic-auth-file" option.
+# you must also create roles and rolebindings for all users.
+
+# you can also use basic authentication via API access as follows
+curl -v -k https://master-node-ip:6443/api/v1/pods -u “user1:password123”
+
+
+# ssh-keygen is used to generate public and private keys
+
+# Digital certificates are basically CA certified public keys. 
+
+# communications between cluster components ("kube-apiserver", "kube-scheduler" etc.) use TLS certs.
+
+# The internal CA  file (ca.key) is kept at /etc/kubernetes/pki/ and it is distributed to each node. 
+# the directory /etc/kubernetes/pki/ also contains the public and private keys for control plane components
+ls -l /etc/kubernetes/pki/
+
+
+# you need to generate private key and certificate for the cluster and for all major components
+# such as "kube-apiserver", "etcd", "kube-scheduler" etc. Then you must do the same for the users.
+
+# .key = private key
+# .pem = public key
+# .csr = certificate signing request (sent to CA)
+# .crt = signed certificate produced by the CA 
+
+# a certificate (crt) is simply a public key (pem) signed by a CA
+
+
+# generate the private key for the cluster, "ca.key"
+openssl genrsa -out  ca.key 2048
+
+# next, using ca.key, you must generate a CSR, "ca.csr"
+openssl req -new -key ca.key -subj “/CN=KUBERNETES-CA” -out ca.csr
+
+# then, again using ca.key,the cluster admin self-signs the CSR certificate to generate "ca.crt" 
+openssl x509 -req -in ca.csr -signkey ca.key -out ca.crt
+
+# “ca.key” -> “ca.csr” ->  “ca.crt”
+
+# the cluster private and public keys (ca.key & ca.crt) will be used to sign all other certficate requests.
+
+
+
+# repeat the process above for cluster components and the admin.
+
+# for example, here is how you can generate the private key for the admin user
+openssl genrsa -out  admin.key 2048
+
+# generate CSR
+openssl req -new -key admin.key -subj “/CN=kube-admin/O=system:masters” -out admin.csr
+
+# the cluster admin again self-sign the certificate using the cluster private and public keys (ca.key & ca.crt)
+openssl x509 -req -in admin.csr -CA ca.crt -CAkey ca.key -out admin.crt
+
+
+
+# you can decrypt and view a certficiate
+openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text -noout
+
+# you can convert CRT to PEM and vice versa:
+openssl x509 -in cert.crt -out cert.pem
+openssl x509 -in cert.pem -out cert.crt
+
+
+
+
+
+# here is how you can generate private key and certificate for a new user
+
+# the user generates his/her private and public key
+openssl  genrsa -out  jane.key 2048
+
+# the user creates the CSR file
+openssl req -new -key jane.key  -subj "/CN=jane" -out jane.csr
+
+# the user also creates the encrypted CSR file
+cat jane.csr | base64 | tr -d "\n" > jane.base64.csr
+
+# next, the user creates the CSR object
+cat <<EOF | kubectl apply -f -
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: jane-csr
+spec:
+  request: $(cat jane.base64.csr)
+  signerName: kubernetes.io/kube-apiserver-client
+  usages:
+  - client auth
+EOF
+
+# if the above approach does not work, manually decrypt the CSR file and copy to a YAML file
+
+# now the admin approves the CSR object and sends the signed cert to the user
+kubectl get csr
+kubectl certificate approve jane-csr
+kubectl get csr jane-csr -o json-path='{$.status.certificate}' | base64 --decode > jane.crt
+
+
+
+
+
+# for debugging certificate related issues, check the log files of the ETCD service
+journalctl -u etcd.service -l 
+kubectl -n kube-system logs etc-master
+
+
+
+
+# All certificate related functions in Kubernetes are carried out by the “kube-controller-manager” on the master node.
+cat /etc/kubernetes/manifests/kube-controller-manager.yaml | grep -i "cluster-signing"
+
+
+
+
+# $HOME/.kube/config file is used by "kubectl"
+# there are three ways to see the contents of kubeconfig file
+cat $HOME/.kube/config
+kubectl config view 
+kubectl config view --raw
+
+# you can also use other kubeconfig files
+kubectl config view  --kubeconfig=/home/jane/.kube/config
+kubectl config view  --as=jane
+
+
+
+# you can manually create kubeconfig files (by defining cluster, user and context)
+# output of each step will be written to the user's conf file
+kubectl config set-cluster myk8scluster1 \
+--server=https://172.16.0.100:6443 \
+--certificate-authority=/etc/kubernetes/pki/ca.crt \
+--embed-certs=true \
+--kubeconfig=jane.conf
+
+kubectl config set-credentials jane \
+--client-key=jane.key \
+--client-certificate=jane.crt \
+--embed-certs=true
+--kubeconfig=jane.conf
+
+kubectl config set-context jane@myk8scluster1 \
+--cluster= myk8scluster1 \
+--user=jane \
+--kubeconfig=jane.conf
+
+kubectl config use-context jane@myk8scluster1 --kubeconfig=jane.conf
+
+
+
+# the kubeconfig files used by control plane components are here
+sudo ls -l /etc/kubernetes/ 
+# to access the cluster as the admin, you can copy /etc/kubernetes/admin.conf to $HOME/.kube/
+
+# only "kube-proxy" keeps its kubeconfig file as a ConfigMap
+kubectl -n kube-system get configmap kube-proxy -o yaml
+
+
+# you can copy/paste the keys from config file and decrypt
+echo "xxyuxWDDxcc" | base64 --decode
+
+
+
+# authorization can be RBAC, ABAC, node level or webhook mode
+# Attribute based access control (ABAC) associates a group of users with a set of permissions. 
+
+# for RBAC, you must create "Role" definition and "Role Binding" at namespace level
+kubectl create role developer --namespace=default --verb=list,create,delete --resource=pods
+kubectl create rolebinding dev-user-binding --namespace=default --role=developer --user=dev-user
+
+
+kubectl get roles
+kubectl get rolebindings
+kubectl describe rolebinding dev-user-binding
+
+
+# check authorization mode for the cluster
+cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i "authorization-mode"
+
+
+
+# as a user , you can cheeck if you have certain rights / capabilities
+kubectl auth can-i create deployments 
+
+# as an admin, you can check the rights of users
+kubectl auth can-i create deployments --as dev-user
+
+# as an admin, you can list all the rights that a user has
+kubectl auth can-i --list --as jane
+
+# you can also check if a service account has rights (for example "dashboard-sa" in "default" namespace)
+kubectl auth can-i list pods --as=system:serviceaccount:default:dashboard-sa
+
+# some resources in Kubernetes are cluster-scoped (not namespace scoped)
+# a Role is specific to a namespace, however a ClusterRole works on all namespaces
+
+# you can create clusterRole and clusterRoleBindings
+kubectl create clusterrole storage-admin --resource=persistentvolumes,storageclasses --verb=list,watch,get,create,delete   
+kubectl create clusterrolebinding michelle-storage-admin --clusterrole=storage-admin --user=michelle
+
+
+kubectl get clusterroles 
+kubectl get clusterrolebindings
+
+# you can also create custom cluster role bindings.
+# For example, if you create a custom role where the user has access to nodes, that user will have access to nodes in all namespaces.
+
+# You can use 3rd party solutions for authorization through webhooks. An example is “Open Policy Agent”.
+
+
+# The authorization mode is set in the startup options of the kube-apiserver. The default mode is “AlwaysAllow”.
+kubectl  -n kube-system describe pod kube-apiserver-controlplane  | grep -i authorization-mode
+# you will see Node, RBAC and WebHook as the modes.
+
+
+
+# Service accounts are used by external applications such as monitoring tools to authenticate to the Kubernetes cluster.
+kubectl create serviceaccount sa1
+
+# the service acount access token is created as a kubernetes secret
+kubectl describe serviceaccount dashboard-sa | grep -i token
+kubectl describe secret dashboard-sa-token-xxxx
+
+# the service account secret for any pod is mounted at /var/run/secrets/kubernetes.io/serviceaccount/ 
+kubectl describe pod hello-world-pod
+kubectl exec -it hello-world-pod -- sh
+ls -l /var/run/secrets/kubernetes.io/serviceaccount
+exit
+
+# every namespace is assigned its own service account
+kubectl get serviceaccounts
+
+# you can specify a custom service account when you create a deployment
+
+
+
+# You can also specify your private registry in the pod definition file. 
+# You must first create a secret object of type “docker-registry”, with the docker credentials.
+
+# Authentication and authorizations can be specified at container level.
+# Since containers are encapsulated inside pods, security settings defined at pod level overwrite 
+# the security context defined at the container level, using the “securityContext” field.
+# If no “runAsUser” is specified, the container will run as “root”.
+
+
+
+# you can get authenticated into api-server from within a pod
+# the cert and th token for the namespace service account are always mounted at "/var/run/secrets/kubernetes.io/serviceaccount/"
+kubectl exec -it pod1 -- sh
+env | grep KUBERNETES
+TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+CACERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+curl --cacert $CACERT --header "Authorization: Bearer $TOKEN" -X GET https://172.16.0.100:6443/api/v1/namespaces
+
+

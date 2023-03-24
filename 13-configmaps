@@ -1,0 +1,45 @@
+
+
+####################################################################
+# ConfigMaps
+####################################################################
+# ConfigMaps are designed to store configuration data while Secrets are designed to store sensitive data.
+
+# while changing environment variables or settings in a pod recreates the pod
+# ConfigMaps can be modified without requiring pod refresh
+# For example bumping up the logging level without having to restart your app 
+# would be a great help in application debugging.
+
+# for stateful apps, you can define a “ConfigMap” where you set the DB string as a variable. 
+
+# the source for a ConfigMap can be a file, directory, or dictionary.
+# you can even refer to a set of file in a directory.
+
+# there is a many-to-many relationship between ConfigMaps and pods.
+
+# the 'envFrom' section of the pod manifest file refers to the ConfigMap.
+# You can inject the ConfigMap into a pod definition file as a volume as well.
+
+# you can override any environment variables set in the container image or in ConfigMaps 
+# by explicitly setting them in 'spec'  section of the Pod manifest.
+
+
+
+
+kubectl create configmap testconfig --from-literal=val1=5
+
+kubectl create configmap  testconfig --from-file=myfile.txt
+
+kubectl get configmap testconfig
+
+# there are ConfigMaps related to system pods
+kubectl -n kube-system get configmaps
+
+# to use the configmap values as variables inside a pod or deployment manifests
+# use ".spec.containers.envFrom.configMapRef" to import the entire ConfigMap
+# use ".spec.containers.env.valueFrom.configMapKeyRef" to use one key/value pair as environment variable
+
+
+# you can use CM as a volume in pod manifest
+# "spec.volumes.configMap" section
+

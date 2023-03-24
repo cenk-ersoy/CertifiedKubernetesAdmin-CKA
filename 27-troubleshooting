@@ -1,0 +1,84 @@
+
+
+#########################################################################
+# Troubleshooting in Kubernetes
+#########################################################################
+
+# start with a watch window to track all events
+kubectl get events --watch &
+
+
+# first check if the cluster controlplane components are running
+kubectl -n kube-system get pods
+
+# if a component is not running, check its details & logs
+kubectl -n kube-system describe pod kube-apiserver-xxxx
+kubectl -n kube-system logs kube-apiserver-xxxx
+
+
+
+# check if the nodes are Ready
+kubectl get nodes -o wide
+
+
+# if the control plane components are deployed as services, check the processes on the nodes
+# on the master node
+ps -aux | grep -i kube-apiserver
+ps -aux | grep -i kube-scheduler
+ps -aux | grep -i kube-controller-manager
+
+
+# list all services
+systemctl list-units --type=service
+
+# restart a service
+systemctl status kubelet.service
+systemctl start kubelet.service
+systemctl stop kubelet.service
+
+# check the logs of a service (use Shift-G to go to the bottom of the page)
+journalctl -u kubelet.service
+
+
+# the "service" command recognizes only the services defined in /etc/init.d
+service kube-apiserver status
+service kube-controller-manager status
+service kube-scheduler status
+
+
+# on the worker node
+ps -aux | grep -i kubelet
+ps -aux | grep -i kube-proxy
+
+ps -aux | grep -i coredns
+ps -aux | grep -i calico
+
+
+service kubelet status
+systemctl status kubelet.service -l
+
+kubectl -n kube-system get pods | grep -i proxy
+service kube-proxy status
+systemcl status kube-proxy
+
+
+# check the YAML files at /etc/kubernetes/manifests
+
+
+# the configuration file for "kubelet" contains a lot of useful information
+# such as the container runtime, static pod path, CA.CRT file, DNS configuration
+sudo cat /var/lib/kubelet/config.yaml 
+
+
+# check /var/log/ on master node 
+# it has the logs of the control plane pods as well as containers
+ls -l /var/log/pods
+ls -l /var/log/containers
+
+cat /var/log/syslog | grep -i apiserver 
+
+
+# check a certificate
+openssl x509 -in /var/lib/kubelet/worker-1.crt -text
+
+

@@ -17,3 +17,82 @@ exit
 # the following returns the name of one of the pods from a deployment
 kubectl get pods | grep -i hello-world | awk '{print $1}' | head -n 1
 
+
+
+###################################################
+# scale and expose the deployment using ClusterIP
+###################################################
+kubectl scale deployment hello-world --replicas=5
+kubectl get pods -o wide
+
+
+# you can also use "horizontal pod autoscaler" to scale a deployment
+kubectl autoscale deployment hello-world --cpu-percent=50 --min=1 --max=10
+
+
+# when you expose a deployment, by default, ClusterIP type service will be created
+kubectl expose deployment hello-world --name hello-world-service --port=80 --target-port=8080
+
+# you can also create the service independently as follows 
+# but the service is NOT associated with any pod or deployment
+kubectl create service clusterip hello-world-service --tcp=80:8080
+
+
+kubectl get service hello-world-service -o wide
+kubectl get endpoints
+# we are using IP address of the service endpoint instead of service name here 
+# because "curl" runs on the node and the node does not know the DNS name of the service
+curl <endpointIP>:port
+
+# you can also test at the container level using the DNS name of the service
+kubectl exec -it hello-world-xxxx  -- sh
+# the pod knows the DNS name of the service (which is "hello-world-service")
+# each time a different pod should reply
+wget -qO- hello-world-service
+wget -qO- hello-world-service
+exit
+
+
+# any pod in the cluster can access the ClusterIP service by name
+kubectl exec -it nginx -- curl hello-world-service:80
+
+
+
+##############################################################
+# expose the deployment using NodePort
+##############################################################
+kubectl delete service hello-world
+kubectl expose deployment hello-world --name hello-world-service --type=NodePort --port=80 --target-port=8080 
+# you can dump the creation into a YAML file and add a specific port number for the Nodeport
+
+
+# you can also create a standalone service 
+# but it is not associated with any pod or deployment
+kubectl create service nodeport hello-world --tcp=80:8080
+# The NodePort is assigned a port number between 30,000 and 32,767.
+
+
+
+kubectl get service hello-world-service -o wide
+kubectl describe service hello-world-service
+kubectl get endpoints
+# we are using IP address of the service endpoint instead of service name here 
+# because "curl" runs on the node and the node does not know the DNS name of the service
+curl <IP of the NODE>:<Nodeport>
+
+
+
+##############################################################
+# expose the deployment using LoadBalancer
+##############################################################
+kubectl delete service hello-world
+kubectl expose deployment hello-world --name hello-world-service --type=LoadBalancer --port=80 --target-port=8080 
+# if there is no cloud provider, the status will be "Pending"
+
+kubectl get service hello-world-service -o wide
+kubectl describe service hello-world-service
+kubectl get endpoints
+# we are using IP address of the service endpoint instead of service name here 
+# because "curl" runs on the node and the node does not know the DNS name of the service
+curl <endpointIP>:80
+

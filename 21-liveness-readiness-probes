@@ -1,0 +1,14 @@
+
+#####################################################################
+# Liveness & Readiness Probes
+#####################################################################
+
+# you can define Readiness and Liveness checks in the pod or deployment manifests
+
+# if the Liveness Check fails, the pod is restarted. (if not live, restart)
+
+# if Readiness Check fails, the pod is removed from the associated Service.
+
+
+
+# checks can be HTTP GET, command or a script. 

@@ -1,0 +1,42 @@
+##############################################################################
+# create a simple pod imperatively
+##############################################################################
+
+# nginx pod is useful since it stays running, while busybox or alpine terminates
+kubectl run nginx-pod --image=nginx
+
+
+# find out on which node the pod is created
+kubectl get pods -o wide
+
+# check the 'state' of each container within the pod
+kubectl describe pod nginx-pod
+
+# access the pod using 'curl' from one of the nodes
+curl http://<IP of the nginx pod>
+
+# you can also access the pod from another pod. 
+# we will create a temporary busybox pod using "--rm" switch
+# busybox image does not contain "curl" utility
+# Once within the container, we will use the "nc" (netcat) command
+kubectl run busybox-temp --image=busybox --rm -it -- sh
+nc -z -v -w 2 <IP of pod> 80
+exit
+
+
+# you can create a pod with environment variable
+kubectl run nginx-pod --image=nginx --restart=Never --env=user=bob
+kubectl exec nginx-pod -it -- env
+
+
+# if using alpine or busybox, you can prevent them from exiting
+kubectl run busybox-pod --image=busybox -- /bin/sleep infinity
+kubectl exec -it busybox-pod -- sh
+ping -c 3 <IP of another pod>
+exit
+
+
+# you can sort kubectl output by using "--sort-by" and the JSONPATH syntax
+# sort pods by creation timestamp
+kubectl get pods --sort-by=.metadata.creationTimestamp
+

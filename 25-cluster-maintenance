@@ -1,0 +1,85 @@
+
+########################################################################
+# Cluster Maintenance/ Release Maintenance
+########################################################################
+
+# Node eviction timeout is 5 mins
+# Check the configuration for "kube-controller-manager"
+
+# Once a node is drained, the node is marked as “un-schedulable”. 
+# Then you can upgrade its operating system or apply patches.
+kubectl drain node-1  --ignore-daemonsets
+
+# once the node is available, you should uncordon it so that pods can be scheduled
+kubectl uncordon node-1
+
+# You can mark a node “un-schedulable” without migrating its pods. 
+kubectl cordon node-1
+
+
+# if a pod is not a part of a ReplicaSet, it will be lost
+
+# drain, cordon and uncordon commands must be run from master node
+
+
+# get the Kubernetes version for the cluster
+kubectl version --short
+cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -i IMAGE_ID
+
+# Notice that “kubectl get nodes” does NOT report the version of “kube-apiserver”. 
+# It shows the version of “kubelet” on each node. You must still manually upgrade the “kubelet” on each node.
+kubectl get nodes -o wide
+
+
+# the "kubeadm" utility shows which version you can upgrade
+kubeadm version
+kubeadm upgrade plan
+
+# you must always upgrade "kubeadm" utility itself first.
+apt update
+apt-get install -y kubeadm=1.20.0-00
+
+
+# here is how you can upgrade the master node
+
+kubectl drain controlplane --ignore-daemonsets
+
+apt update
+apt-get install kubeadm=1.20.0-00
+
+kubeadm upgrade plan v1.20.0
+kubeadm upgrade apply v1.20.0
+
+apt-get install kubelet=1.20.0-00
+systemctl daemon-reload
+systemctl restart kubelet
+
+kubectl uncordon controlplane 
+
+
+
+# next you must upgrade worker nodes 
+# you must drain the worker node from master node
+kubectl drain node01 --ignore-daemonsets
+
+# ssh to node and do the following
+
+apt update
+apt-get install kubeadm=1.20.0-00
+# notice "node" here
+kubeadm upgrade node
+
+apt-get install kubelet=1.20.0-00
+systemctl daemon-reload
+systemctl restart kubelet
+
+# do the following on the master node to finish the worker node upgrade
+# Note that once the worker node is up again, the pods do NOT migrate back to the node
+kubectl uncordon node01
+kubectl get pods -o wide 
+
+
+
+# None of the components can have release number higher than the “kube-apiserver”.
+# Recommended upgrade approach is to upgrade one minor version at a time.
+

@@ -1,0 +1,18 @@
+
+#########################################################
+# StatefulSets
+#########################################################
+
+# They are used for DB, message queue or distributed cache type apps
+# where pods DNS name and storage should be kept unchanged.
+
+# It is like a ReplicaSet except
+# the pods are assigned fixed names (no hashes but sequence no) 
+# and pods have their own DNS endpoints via the Service.
+# The pods are created in sequence.
+
+# A Service is required to be used with the StatefulSet.
+
+# Always use Persistent Volume as storage (PV)
+
+kubectl get StatefulSets

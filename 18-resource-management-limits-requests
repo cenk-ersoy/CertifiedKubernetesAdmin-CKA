@@ -1,0 +1,37 @@
+
+##########################################################
+# Resource Management
+# Limits and Requests
+##########################################################
+
+# limits and requests are defined in the pod manifest
+
+# By default, a pod can access all the resouces (CPU, memory etc.) of a node.
+# You must set Limits (max amount) or Requests (guaranteed amount) in the pod manifest.
+
+
+# if the Scheduler cannot find a node with enough resources, then
+# the pod is will remain in "Pending" state. Check the "Events"section:
+kubectl describe mypod 
+
+# By default, Kubernetes sets a 1 vCPU and 512 Mi of memory limits on containers (not pods).
+# While a container cannot consume more vCPU than its defined limit, the container can consume more memory than the limit. 
+# If the container continues to consume more memory than its limit, it will be terminated. 
+
+# you can also define "LimitRange" at namespace level by using YAML file
+kubectl -n myns1  -f mem-limit-range.yaml
+
+kubectl get limitranges --all-namespaces
+kubectl describe limitrange mem-limitrange --namespace=ns1
+
+# you can also define ResourceQuota for a pod using YAML file 
+# for example, you can limit the number of Persistent Volume Claims for a pod
+kubectl -n myns1  -f storage-quota.yaml
+
+
+
+###########################################################
+# resource utilization (metrics API enabled)
+###########################################################
+kubectl top pods
+kubectl top nodes

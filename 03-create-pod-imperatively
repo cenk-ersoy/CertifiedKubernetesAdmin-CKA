@@ -20,7 +20,7 @@ curl http://<IP of the nginx pod>
 # busybox image does not contain "curl" utility
 # Once within the container, we will use the "nc" (netcat) command
 kubectl run busybox-temp --image=busybox --rm -it -- sh
-nc -z -v -w 2 <IP of pod> 80
+nc -z -v -w 2 <IP of another pod> 80
 exit
 
 
